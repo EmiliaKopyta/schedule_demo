@@ -25,7 +25,7 @@ Klasyczne solwery dobrze radzą sobie z precyzyjnie sformułowanymi modelami. Pr
 System reprezentacji pośredniej i doprecyzowującego dialogu powinien rozwiązać te problemy.
 ---
 
-## 2. Architektura systemu — przegląd
+## 2. Architektura systemu - przegląd
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -80,8 +80,8 @@ Warstwa A odpowiada za pierwsze tłumaczenie: z opisu słownego do ustrukturyzow
 ### 3.1 Co LLM powinien zrobić w tej warstwie
 
 **Wyodrębnianie ograniczeń:** Identyfikacja zdań lub fraz opisujących ograniczenia i klasyfikacja każdego jako:
-- ograniczenie **twarde** (*hard constraint*) — naruszenie jest niedopuszczalne
-- ograniczenie **miękkie** (*soft constraint*) — naruszenie jest dopuszczalne, ale karane
+- ograniczenie **twarde** (*hard constraint*) - naruszenie jest niedopuszczalne
+- ograniczenie **miękkie** (*soft constraint*) - naruszenie jest dopuszczalne, ale karane
 
 **Identyfikacja zasobów:** Rozpoznanie podmiotów w opisie: nauczyciele, klasy, sale, przedmioty, timesloty.
 
@@ -205,15 +205,15 @@ Translator działa jako stos transformacji:
 ```
 JSON
   ↓
-[Parser i Validator] — sprawdza kompletność i typy pól
+[Parser i Validator] - sprawdza kompletność i typy pól
   ↓
-[Resource Builder] — tworzy słowniki zasobów (nauczyciele, klasy, sale, sloty)
+[Resource Builder] - tworzy słowniki zasobów (nauczyciele, klasy, sale, sloty)
   ↓
-[Variable Generator] — tworzy zmienne decyzyjne CP-SAT
+[Variable Generator] - tworzy zmienne decyzyjne CP-SAT
   ↓
-[Hard Constraint Encoder] — dodaje ograniczenia twarde
+[Hard Constraint Encoder] - dodaje ograniczenia twarde
   ↓
-[Soft Constraint Encoder] — dodaje zmienne karne i funkcję celu
+[Soft Constraint Encoder] - dodaje zmienne karne i funkcję celu
   ↓
 Model CP-SAT
 ```
@@ -225,7 +225,7 @@ todo: dopracowania konkretny schemat działania.
 Gdy solver zwróci `INFEASIBLE`, użytkownik dostaje informację bezużyteczną ("nie znalazłem planu"). System powinien:
 
 **Krok 1: Identyfikacja konfliktów**
-OR-Tools może generować *Infeasibility Explanations* (IIS — Irreducible Infeasible Subsystem). To minimalne podzbiory ograniczeń, które razem są sprzeczne.
+OR-Tools może generować *Infeasibility Explanations* (IIS - Irreducible Infeasible Subsystem). To minimalne podzbiory ograniczeń, które razem są sprzeczne.
 
 **Krok 2: Tłumaczenie z powrotem na język naturalny**
 LLM tłumaczy techniczny opis konfliktu na zrozumiałe zdanie:
@@ -249,18 +249,18 @@ DSL musi być dostatecznie ekspresywny, żeby pokryć wszystkie realistyczne wym
 - Timesloty (dni × godziny)
 
 **Ograniczenia twarde (standardowe):**
-- `no_double_booking` — nauczyciel/sala/klasa nie może być w dwóch miejscach jednocześnie
-- `teacher_unavailable` — blokada konkretnych slotów
-- `teacher_travel_time` — minimalny odstęp między lekcjami w różnych szkołach
-- `subject_frequency` — ile razy w tygodniu dana klasa ma dany przedmiot
-- `room_required_type` — niektóre zajęcia wymagają specjalnej sali
+- `no_double_booking` - nauczyciel/sala/klasa nie może być w dwóch miejscach jednocześnie
+- `teacher_unavailable` - blokada konkretnych slotów
+- `teacher_travel_time` - minimalny odstęp między lekcjami w różnych szkołach
+- `subject_frequency` - ile razy w tygodniu dana klasa ma dany przedmiot
+- `room_required_type` - niektóre zajęcia wymagają specjalnej sali
 
 **Ograniczenia miękkie (standardowe):**
 - `prefer_morning` / `prefer_afternoon`
-- `prefer_compact_schedule` — minimalizacja okienek
-- `prefer_consistent_slots` — ten sam przedmiot o tej samej porze każdego tygodnia
-- `prefer_room` — preferencja konkretnej sali
-- `avoid_last_slot` — unikanie ostatniej lekcji w dniu
+- `prefer_compact_schedule` - minimalizacja okienek
+- `prefer_consistent_slots` - ten sam przedmiot o tej samej porze każdego tygodnia
+- `prefer_room` - preferencja konkretnej sali
+- `avoid_last_slot` - unikanie ostatniej lekcji w dniu
 
 DSL powinien mieć numer wersji (`"dsl_version": "1.2"`). Translator wspiera konkretne wersje. Umożliwia to ewolucję schematu bez łamania kompatybilności z zapisanymi instancjami problemów.
 
@@ -273,7 +273,7 @@ Schemat DSL może pełnić podwójną rolę:
 Może pozwoliłoby to na budowę biblioteki znanych problemów (benchmarki, przykłady).
 ---
 
-## 8. Ukryte założenia — taksonomia i strategie wykrywania
+## 8. Ukryte założenia - taksonomia i strategie wykrywania
 
 Jest tutaj przynajmniej kilka kategorii:
 
