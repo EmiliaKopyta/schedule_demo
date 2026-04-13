@@ -79,13 +79,11 @@ Warstwa A odpowiada za pierwsze tłumaczenie: z opisu słownego do ustrukturyzow
 - ograniczenie **twarde** - naruszenie jest niedopuszczalne
 - ograniczenie **miękkie** - naruszenie jest dopuszczalne, ale karane
 
-**Identyfikacja zasobów:** Rozpoznanie podmiotów w opisie: nauczyciele, klasy, sale, przedmioty, timesloty.
-
-**Ekstrakcja parametrów:** Liczby, nazwy, zakresy wartości (np. "5 dni roboczych", "co najwyżej 6 lekcji dziennie").
-
-**Flagowanie luk:** Identyfikacja miejsc, gdzie opis jest niekompletny lub niejednoznaczny.
-
-**Flagowanie założeń:** Jawne wskazanie, co LLM "dopowiedział" na podstawie wiedzy dziedzinowej, a co wprost wynikało z opisu (pytanie, jak sprawdzić poprawność tego wskazania, czy to oczywiste).
+Inne zadania:
+- Identyfikacja zasobów, czyli rozpoznanie podmiotów w opisie: nauczyciele, klasy, sale, przedmioty, timesloty.
+- Ekstrakcja parametrów: liczby, nazwy, zakresy wartości (np. "5 dni roboczych", "co najwyżej 6 lekcji dziennie").
+- Identyfikacja miejsc, gdzie opis jest niekompletny lub niejednoznaczny (luki logiczne).
+- Jawne wskazanie, co LLM "dopowiedział" na podstawie wiedzy dziedzinowej, a co wprost wynikało z opisu (pytanie, jak sprawdzić poprawność tego wskazania, czy to oczywiste).
 
 ### 3.2 Inżynieria promptów dla warstwy A
 
@@ -95,7 +93,7 @@ Kluczowe elementy:
 - Dokładna specyfikacja schematu JSON z typami i opisami pól. LLM powinien wiedzieć, że pola `assumptions_made` i `clarification_needed` są obowiązkowe i że puste listy są niedopuszczalne.
 - Instrukcja konserwatywności: "Jeśli nie masz pewności, czy coś jest ograniczeniem twardym czy miękkim, zaklasyfikuj jako miękkie i dodaj do `clarification_needed`."
 - Instrukcja jawności założeń: "Każde założenie, które dodajesz samodzielnie, musi znaleźć się w `assumptions_made` (audyt)."
-- 
+  
 ### 3.3 Potencjalne problemy i pomysły na rozwiązania
 
 | Problem | Opis | Rozwiązanie |
