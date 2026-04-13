@@ -201,7 +201,6 @@ todo: dopracowanie konkretnego schematu działania.
 Gdy solver zwróci `INFEASIBLE`, użytkownik dostaje informację bezużyteczną ("nie znalazłem planu"). Możliwy schemat działania:
 
 **Krok 1: Identyfikacja konfliktów**
-OR-Tools może generować *Infeasibility Explanations* (IIS - Irreducible Infeasible Subsystem). To minimalne podzbiory ograniczeń, które razem są sprzeczne.
 
 **Krok 2: Tłumaczenie z powrotem na język naturalny**
 LLM tłumaczy techniczny opis konfliktu na zrozumiałe zdanie:
@@ -215,63 +214,64 @@ System może zaproponować, które ograniczenia miękkie warto osłabić lub usu
 
 ## 7. Projektowanie schematu danych (DSL - Domain Specific Language)
 
-DSL musi być dostatecznie ekspresywny, żeby pokryć wszystkie realistyczne wymagania use case'u, ale nie tak ogólny, żeby stał się nowym językiem programowania. Sugerowany zakres dla use case nauczycielskiego:
+DSL musi być dostatecznie ekspresywny, żeby pokryć wszystkie realistyczne wymagania use case'u, ale nie tak ogólny, żeby stał się nowym językiem programowania. Sugerowany zakres:
 
-**Zasoby (entities):**
+**Zasoby:**
 - Nauczyciele (z atrybutami: imię, szkoły, dostępność)
 - Klasy uczniowskie (z atrybutami: szkoła, poziom)
 - Sale (z atrybutami: szkoła, pojemność, typ np. sala informatyczna)
 - Przedmioty
 - Timesloty (dni × godziny)
 
-**Ograniczenia twarde (standardowe):**
+todo
+- Przerwy (nieraz ustalone jest z góry o której godzinie jest dana długość przerwy, pytanie czy nie wliczyć tego w timesloty, czy może pobierać listę długości przerw)
+
+**Ograniczenia twarde:**
 - `no_double_booking` - nauczyciel/sala/klasa nie może być w dwóch miejscach jednocześnie
 - `teacher_unavailable` - blokada konkretnych slotów
-- `teacher_travel_time` - minimalny odstęp między lekcjami w różnych szkołach
+- `teacher_travel_time` - minimalny odstęp między lekcjami w różnych szkołach (informacja pozyskana od nauczyciela)
 - `subject_frequency` - ile razy w tygodniu dana klasa ma dany przedmiot
 - `room_required_type` - niektóre zajęcia wymagają specjalnej sali
 
-**Ograniczenia miękkie (standardowe):**
+**Ograniczenia miękkie:**
 - `prefer_morning` / `prefer_afternoon`
-- `prefer_compact_schedule` - minimalizacja okienek
+- `prefer_compact_schedule` - minimalizacja okienek (tutaj do zastanowienia, czy nie najlepiej żeby to było w twardych, bo dzieci nie powinny mieć okienek)
 - `prefer_consistent_slots` - ten sam przedmiot o tej samej porze każdego tygodnia
 - `prefer_room` - preferencja konkretnej sali
 - `avoid_last_slot` - unikanie ostatniej lekcji w dniu
 
-DSL powinien mieć numer wersji (`"dsl_version": "1.2"`). Translator wspiera konkretne wersje. Umożliwia to ewolucję schematu bez łamania kompatybilności z zapisanymi instancjami problemów.
+Prawdopodobnie taki DSL powinien mieć numer wersji (`"dsl_version": "1.2"`), w razie jakby kiedyś ewoluował.
 
 ### 7.1 DSL jako format wymiany
 
 Schemat DSL może pełnić podwójną rolę:
 - **Format wejściowy:** z opisu naturalnego przez LLM
-- **Format eksportu:** zapisany plik `.json` z opisem problemu, który można edytować ręcznie, wersjonować w git, przesyłać między systemami
-
-Może pozwoliłoby to na budowę biblioteki znanych problemów (benchmarki, przykłady).
+- **Format eksportu:** zapisany plik `.json` z opisem problemu, który można edytować ręcznie, wersjonować w git, przesyłać między systemami, ogólnie odtworzyć plan żeby nie zaczynać od zera procesu tworzenia wymagań.
 ---
 
-## 8. Ukryte założenia - taksonomia i strategie wykrywania
+## 8. Taksonomia i strategie wykrywania ukrytych założeń
 
 Jest tutaj przynajmniej kilka kategorii:
 
 **Założenia dotyczące struktury problemu**:
-- Liczba slotów w dniu
-- Długość tygodnia roboczego
-- Czy plan jest tygodniowy, czy może dwutygodniowy (A/B)
-- Czy przerwy są slotami (i mogą być zajęte) czy przerwami (i nie mogą)
+- Liczba slotów w dniu*
+- Długość tygodnia roboczego (domyślnie 5, ale najlepiej zostawić pole do modyfikacji, bo np. uczelnie często prowadzą zajęcia pn-śr)
+- Czy plan jest tygodniowy, czy może dwutygodniowy (domyślnie tygodniowy)
+- Czy przerwy są slotami (i mogą być zajęte) czy przerwami (i nie mogą)*
 
 **Założenia dotyczące zasobów:**
-- Czy każdy przedmiot ma dokładnie jednego nauczyciela, czy może więcej?
-- Czy klasy uczniowskie są homogeniczne (wszyscy mają ten sam plan)?
-- Czy sale mają pojemność, która ogranicza przypisanie klas?
+- Czy każdy przedmiot ma dokładnie jednego nauczyciela, czy może więcej? (na pewno domyślnie można założyć 1 jeśli to jest skierowane na szkoły, a nie uczelnie, ale modyfikacja powinna być możliwa)
+- Pojemność sal i wypadki, gdzie pojemność zostaje przekroczona - co wtedy proponować?*
 
 **Założenia dotyczące ograniczeń:**
-- Domyślna twardość ograniczeń (co jest twarde, co miękkie, gdy użytkownik nie mówi wprost)
-- Domyślna liczba lekcji tygodniowo, gdy nie podano
-- Czy "dostępny od 9:00" oznacza że może zaczynać o 9:00 czy że musi być na miejscu o 9:00?
+- Domyślna twardość ograniczeń (co jest twarde, co miękkie, gdy użytkownik nie mówi wprost, częściowo gotowe w 7)
+- Domyślna liczba lekcji z danego przedmiotu tygodniowo, gdy nie podano (raczej 1 najbezpieczniejsze)
 
 **Założenia dotyczące funkcji celu:**
-- Czy wszystkie preferencje są równoważne, czy niektóre są ważniejsze?
+- Kolizje twardych ograniczeń - czy możliwe, kiedy i jak sobie z tym radzić?*
 - Co jest priorytetem: minimalizacja okienek vs zgodność z preferencjami?
+
+*krytyczne.
 
 ### 8.1 Wykrywanie
 
@@ -288,27 +288,26 @@ Przed dialogiem sprawdzenie, czy opis zawiera wewnętrzne sprzeczności, np. "na
 
 ## 9. Walidacja poprawności interpretacji
 
-### 9.1 Wielopoziomowa walidacja
-
 Walidacja powinna następować na kilku poziomach:
 
-**Poziom 1: Walidacja schematu (syntaktyczna)**
+**Walidacja schematu (syntaktyczna)**
 JSON jest poprawny składniowo i zgodny ze schematem (typy pól, wymagane klucze). Narzędzie: `jsonschema`.
 
-**Poziom 2: Walidacja logiczna (semantyczna)**
+**Walidacja logiczna (semantyczna)**
 Sprawdzenie prostych niezmienników bez uruchamiania solvera:
 - Czy każda klasa ma przypisane lekcje?
 - Czy każde zajęcie ma przypisanego nauczyciela?
 - Czy sumaryczna liczba lekcji nie przekracza dostępnych slotów?
 - Czy nauczyciel jest dostępny wystarczająco długo dla przypisanych zajęć?
-
-**Poziom 3: Walidacja przez partial solving**
-Możliwe, że uruchomienie solvera na uproszczonej wersji problemu (tylko ograniczenia twarde, mała instancja) przyda się do szybkiej detekcji oczywistych konfliktów.
-
-**Poziom 4: Walidacja przez użytkownika**
+- 
+**Walidacja przez użytkownika**
 Podsumowanie interpretacji w języku naturalnym.
 
-### 9.2 Metryki jakości interpretacji
+Inny pomysł:
+**Walidacja przez partial solving**
+Możliwe, że uruchomienie solvera na uproszczonej wersji problemu (tylko ograniczenia twarde, mała instancja) przyda się do szybkiej detekcji oczywistych konfliktów.
+
+### 9.1 Metryki jakości interpretacji
 
 todo
 
@@ -340,23 +339,16 @@ LLM może "wymyślić" ograniczenia nieobecne w opisie. Mitigacja: cytaty źród
 
 ## 12. Możliwe kierunki rozszerzenia
 
-### 12.1 Wyjaśnialność planu
+- Wyjaśnialność planu z uzasadnieniem każdej decyzji: "Matematyka 3A jest w środę o 9:00, ponieważ jest to jedyny slot spełniający dostępność Pana Kowalskiego i preferencję poranną klasy."
+- Wsparcie dla planów dwutygodniowych i rotacyjnych. Rozszerzenie DSL o te koncepty.
+- Integracja z zewnętrznymi systemami, jak import dostępności z kalendarza Google/Outlook? Czy da się integrować z systemami jak Librus?
 
-Nie tylko wygenerowanie planu, ale uzasadnienie każdej decyzji: "Matematyka 3A jest w środę o 9:00, ponieważ jest to jedyny slot spełniający dostępność Pana Kowalskiego i preferencję poranną klasy."
-
-### 12.2 Wsparcie dla planów dwutygodniowych i rotacyjnych
-
-Rozszerzenie dla szkół z rotującymi grupami. Rozszerzenie DSL o te koncepty.
-
-### 12.3 Integracja z zewnętrznymi systemami
-
-Import dostępności z kalendarza Google/Outlook? Czy da się integrować z systemami jak Librus?
 ---
 
 ### 13. Priorytety dla pracy
 
 **Must have:**
-- DSL schema (v1.0) z podstawowymi typami ograniczeń
+- DSL schema z podstawowymi typami ograniczeń
 - Działający pipeline NL → DSL → OR-Tools dla prostych przypadków
 - Moduł dialogowy dla pytań krytycznych
 - Ewaluacja na co najmniej 20 przykładach
