@@ -85,7 +85,7 @@ Inne zadania:
 - Identyfikacja miejsc, gdzie opis jest niekompletny lub niejednoznaczny (luki logiczne).
 - Jawne wskazanie, co LLM "dopowiedział" na podstawie wiedzy dziedzinowej, a co wprost wynikało z opisu (pytanie, jak sprawdzić poprawność tego wskazania, czy to oczywiste).
 
-### 3.2 Inżynieria promptów dla warstwy A
+### 3.1 Inżynieria promptów dla warstwy A
 
 Kluczowe elementy:
 - Dostarczenie LLM słownika pojęć dziedzinowych z definicjami (co to jest "slot", "ograniczenie twarde", "ograniczenie miękkie" w kontekście planowania lekcji).
@@ -94,14 +94,14 @@ Kluczowe elementy:
 - Instrukcja konserwatywności: "Jeśli nie masz pewności, czy coś jest ograniczeniem twardym czy miękkim, zaklasyfikuj jako miękkie i dodaj do `clarification_needed`."
 - Instrukcja jawności założeń: "Każde założenie, które dodajesz samodzielnie, musi znaleźć się w `assumptions_made` (audyt)."
   
-### 3.3 Potencjalne problemy i pomysły na rozwiązania
+### 3.2 Potencjalne problemy i pomysły na rozwiązania
 
 | Problem | Opis | Rozwiązanie |
 |---------|------|-----------|
-| Klasyfikacja twarde/miękkie | LLM nie jest pewny, czy "najlepiej żeby" to nakaz czy preferencja | Analiza hedging words (raczej, najlepiej, jeśli możliwe); domyślnie miękkie |
+| Klasyfikacja twarde/miękkie | LLM nie jest pewny, czy "najlepiej żeby" to nakaz czy preferencja | Analiza słów wskazujących na priorytet (raczej, najlepiej, jeśli możliwe); domyślnie miękkie |
 | Pominięcie kontekstu | LLM ignoruje część opisu przy długich wejściach | Chunking wejścia + weryfikacja kompletności |
 | Halucynowane ograniczenia | LLM dodaje ograniczenia niewymienione w opisie | Wymaganie cytatu źródłowego dla każdego ograniczenia |
-| Nierozpoznany podmiot | "ona" odnosi się do nauczycielki wymienionej wcześniej | Coreference resolution (znaleźć więcej informacji) w prompcie, może preprocessing? |
+| Nierozpoznany podmiot | Mogą to być np. zaimki, które odnoszą się do nauczyciela wymienionego wcześniej | Coreference resolution (znaleźć więcej informacji) w prompcie, może preprocessing? Pytanie, czy będzie to problem każdego modelu, czy jest to już nieaktualne |
 | Sprzeczność w opisie | "Pani X jest dostępna rano" + "Pani X zaczyna o 14:00" | Flagowanie sprzeczności przed tłumaczeniem |
 
 ---
@@ -109,9 +109,6 @@ Kluczowe elementy:
 ## 4. Warstwa B: Moduł dialogowy z doprecyzowaniem wymagań
 
 Warstwa B przekształca zidentyfikowane luki w dialog z użytkownikiem, ale robi to **inteligentnie**: nie zasypuje pytaniami, pyta tylko o to, co rzeczywiście blokuje solvera lub istotnie wpływa na jakość planu.
-
-### 4.1 Priorytetyzacja pytań
-
 Nie wszystkie luki są równie ważne. System powinien klasyfikować pytania według priorytetu:
 
 **Krytyczne (blokujące):** Bez odpowiedzi solver nie może uruchomić się poprawnie.
@@ -127,9 +124,9 @@ Nie wszystkie luki są równie ważne. System powinien klasyfikować pytania wed
 - Czy jest preferowany dzień, w którym dana klasa ma więcej lekcji?
 - Czy nauczyciel chce mieć ten sam plan co tydzień?
 
-Strategia: w pierwszej iteracji zadaj tylko pytania krytyczne. Po odpowiedzi zadaj pytania ważne. Opcjonalne tylko na żądanie (możliwe że tutaj wymagałoby doprecyzowania, w jakich konkretnie sytuacjach).
+Strategia: w pierwszej iteracji zadać tylko pytania krytyczne. Po odpowiedzi zadać pytania ważne. Opcjonalne tylko na żądanie (możliwe że tutaj wymagałoby doprecyzowania, w jakich konkretnie sytuacjach).
 
-### 4.2 Format dialogu
+### 4.1 Format dialogu
 
 Pytania powinny być prezentowane w sposób zrozumiały dla osoby niebędącej ekspertem od optymalizacji. Zamiast:
 
@@ -139,9 +136,9 @@ System powinien pytać:
 
 > "Pan Kowalski jest niedostępny w poniedziałek i środę po 13:00. Czy to oznacza, że w żadnym wypadku nie może mieć wtedy lekcji (bezwzględny zakaz), czy raczej że lepiej żeby nie miał, ale w wyjątkowej sytuacji jest to możliwe?"
 
-Opcje odpowiedzi mogą być ustrukturyzowane (przyciski, lista wyboru) lub tekstowe, co zależy od interfejsu. Generalnie jeśli odpowiedź zawierałaby np. przyciski, to pozbywamy się problemu z tłumaczeniem odpowiedzi na język zrozumiały dla systemu lub błędów ludzkich. Niektóre chaty LLM już stosują takie pytania doprecyzowujące z listami wyboru.
+Opcje odpowiedzi mogą być ustrukturyzowane (przyciski, lista wyboru) lub tekstowe, co zależy od interfejsu. Generalnie jeśli odpowiedź zawierałaby np. przyciski, to pozbywamy się kilku problemów np. błędów ludzkich, tłumaczenia tego znowu na zmienne. Niektóre chaty LLM już stosują takie pytania doprecyzowujące z listami wyboru i zdaje się to działać dobrze.
 
-### 4.3 Aktualizacja schematu
+### 4.2 Aktualizacja schematu
 
 Każda odpowiedź użytkownika jest przetwarzana przez LLM, który:
 - aktualizuje odpowiednie pole w schemacie
@@ -149,21 +146,11 @@ Każda odpowiedź użytkownika jest przetwarzana przez LLM, który:
 - sprawdza, czy odpowiedź nie tworzy nowych sprzeczności z już zdefiniowanymi ograniczeniami
 - generuje ewentualne nowe pytania wynikające z odpowiedzi
 
-### 4.4 Wykrywanie sprzeczności w czasie dialogu
+System powinien wykryć sprzeczności **przed uruchomieniem solvera** i poinformować użytkownika z wyjaśnieniem. Po każdej aktualizacji schematu potrzebna jest walidacja logiczna, czyli sprawdzenie niezmiennych warunków (np. łączna liczba wymaganych lekcji ≤ dostępne sloty × liczba nauczycieli).
 
-Moduł powinien aktywnie sprawdzać spójność odpowiedzi:
+### 4.3 Potwierdzenie interpretacji przed solverem
 
-**Przykład sprzeczności:**
-- Wcześniej: "Pan Kowalski jest dostępny przez cały dzień"
-- Teraz: "Pan Kowalski może prowadzić maksymalnie 4 lekcje dziennie, musi mieć przerwę południową, i nie może być przed 9:00"
-
-System powinien to wykryć **przed uruchomieniem solvera** i poinformować użytkownika z wyjaśnieniem.
-
-Mechanizm: po każdej aktualizacji schematu potrzebna jest **walidacja logiczna** (nie pełny solver), czyli sprawdzenie niezmiennych warunków (np. łączna liczba wymaganych lekcji ≤ dostępne sloty × liczba nauczycieli).
-
-### 4.5 Potwierdzenie interpretacji przed solverem
-
-Przed uruchomieniem solvera system prezentuje **podsumowanie interpretacji** w języku naturalnym:
+Przed uruchomieniem solvera system prezentuje podsumowanie interpretacji w języku naturalnym:
 
 > "Rozumiem, że:
 > - Tydzień składa się z 5 dni, każdy dzień ma 8 slotów lekcyjnych
@@ -207,11 +194,11 @@ JSON
 Model CP-SAT
 ```
 
-todo: dopracowania konkretny schemat działania.
+todo: dopracowanie konkretnego schematu działania.
 
-## 6. Warstwa D: Solver i obsługa infeasibility
+## 6. Warstwa D: Solver i obsługa infeasibility ****
 
-Gdy solver zwróci `INFEASIBLE`, użytkownik dostaje informację bezużyteczną ("nie znalazłem planu"). System powinien:
+Gdy solver zwróci `INFEASIBLE`, użytkownik dostaje informację bezużyteczną ("nie znalazłem planu"). Możliwy schemat działania:
 
 **Krok 1: Identyfikacja konfliktów**
 OR-Tools może generować *Infeasibility Explanations* (IIS - Irreducible Infeasible Subsystem). To minimalne podzbiory ograniczeń, które razem są sprzeczne.
