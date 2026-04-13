@@ -7,22 +7,20 @@
 Nauczyciel pracujący jednocześnie w wielu szkołach wprowadza dodatkowe wymiary problemu:
 
 - **Ograniczenia transportowe:** czas dojazdu między szkołami tworzy *okna niedostępności* zależne od par lokalizacji i środka transportu
-- **Odrębne administracje:** każda szkoła ma własny plan, który musi być globalnie spójny
+- **Odrębne administracje:** każda szkoła ma własny plan, który musi być globalnie spójny (dodatkowo, nauczyciel może mieć już jeden z planów ułożony i niemożliwy do zmian, a drugi w trakcie układania)
 - **Niesymetryczne zasoby:** ta sama sala istnieje tylko w jednej szkole; nauczyciel istnieje we wszystkich
 - **Problemy kaskadowe:** zmiana planu w szkole A może naruszyć ograniczenia w szkole B
 
 ### 1.2 Dlaczego nie wystarczy klasyczny solwer?
 
-Klasyczne solwery dobrze radzą sobie z precyzyjnie sformułowanymi modelami. Problem leży w procesie formalizacji wymagań:
-
 | Etap | Podejście naiwne | Rzeczywistość |
 |------|-----------------|---------------|
 | Zbieranie wymagań | Opis słowny od dyrektora/planisty | Nieprecyzyjny, niekompletny, sprzeczny |
 | Formalizacja | Ręczne tłumaczenie na model | Czasochłonne, wymaga eksperta |
-| Zmiana wymagań | Modyfikacja kodu modelu | Niepraktyczne dla użytkownika końcowego |
+| Zmiana wymagań | Modyfikacja kodu modelu | Niepraktyczne/niemożliwe dla użytkownika końcowego |
 | Wyjaśnienie błędu | "Solver nie znalazł rozwiązania" | Niezrozumiałe dla nauczyciela |
 
-System reprezentacji pośredniej i doprecyzowującego dialogu powinien rozwiązać te problemy.
+System reprezentacji pośredniej i doprecyzowującego dialogu z LLM powinien rozwiązać te problemy.
 ---
 
 ## 2. Architektura systemu - przegląd
@@ -77,11 +75,9 @@ System reprezentacji pośredniej i doprecyzowującego dialogu powinien rozwiąza
 
 Warstwa A odpowiada za pierwsze tłumaczenie: z opisu słownego do ustrukturyzowanego schematu. LLM nie generuje kodu, tylko wypełnia zdefiniowany przez system schemat JSON.
 
-### 3.1 Co LLM powinien zrobić w tej warstwie
-
-**Wyodrębnianie ograniczeń:** Identyfikacja zdań lub fraz opisujących ograniczenia i klasyfikacja każdego jako:
-- ograniczenie **twarde** (*hard constraint*) - naruszenie jest niedopuszczalne
-- ograniczenie **miękkie** (*soft constraint*) - naruszenie jest dopuszczalne, ale karane
+**Wyodrębnianie ograniczeń:** klasyfikacja każdego jako:
+- ograniczenie **twarde** - naruszenie jest niedopuszczalne
+- ograniczenie **miękkie** - naruszenie jest dopuszczalne, ale karane
 
 **Identyfikacja zasobów:** Rozpoznanie podmiotów w opisie: nauczyciele, klasy, sale, przedmioty, timesloty.
 
@@ -89,22 +85,17 @@ Warstwa A odpowiada za pierwsze tłumaczenie: z opisu słownego do ustrukturyzow
 
 **Flagowanie luk:** Identyfikacja miejsc, gdzie opis jest niekompletny lub niejednoznaczny.
 
-**Flagowanie założeń:** Jawne wskazanie, co LLM "dopowiedział" na podstawie wiedzy dziedzinowej, a co wprost wynikało z opisu.
+**Flagowanie założeń:** Jawne wskazanie, co LLM "dopowiedział" na podstawie wiedzy dziedzinowej, a co wprost wynikało z opisu (pytanie, jak sprawdzić poprawność tego wskazania, czy to oczywiste).
 
 ### 3.2 Inżynieria promptów dla warstwy A
 
-Skuteczne uzyskanie wyjścia wymaga dobrze zaprojektowanego promptu systemowego. Kluczowe elementy:
-
-**Ontologia dziedzinowa w prompcie:** Dostarczenie LLM słownika pojęć dziedzinowych z definicjami (co to jest "slot", "ograniczenie twarde", "ograniczenie miękkie" w kontekście planowania lekcji).
-
-**Przykłady few-shot:** Kilka par (opis → schemat) z adnotacjami, dlaczego dane zdanie zostało zakwalifikowane jako ograniczenie twarde vs miękkie. Szczególnie ważne dla granicznych przypadków.
-
-**Explicit output format:** Dokładna specyfikacja schematu JSON z typami i opisami pól. LLM powinien wiedzieć, że pola `assumptions_made` i `clarification_needed` są **obowiązkowe** i że puste listy są niedopuszczalne.
-
-**Instrukcja konserwatywności:** "Jeśli nie masz pewności, czy coś jest ograniczeniem twardym czy miękkim, zaklasyfikuj jako miękkie i dodaj do `clarification_needed`."
-
-**Instrukcja jawności założeń:** "Każde założenie, które dodajesz samodzielnie, musi znaleźć się w `assumptions_made` (audyt)."
-
+Kluczowe elementy:
+- Dostarczenie LLM słownika pojęć dziedzinowych z definicjami (co to jest "slot", "ograniczenie twarde", "ograniczenie miękkie" w kontekście planowania lekcji).
+- Przykłady few-shot - Kilka par (opis → schemat) z adnotacjami, dlaczego dane zdanie zostało zakwalifikowane jako ograniczenie twarde vs miękkie. 
+- Dokładna specyfikacja schematu JSON z typami i opisami pól. LLM powinien wiedzieć, że pola `assumptions_made` i `clarification_needed` są obowiązkowe i że puste listy są niedopuszczalne.
+- Instrukcja konserwatywności: "Jeśli nie masz pewności, czy coś jest ograniczeniem twardym czy miękkim, zaklasyfikuj jako miękkie i dodaj do `clarification_needed`."
+- Instrukcja jawności założeń: "Każde założenie, które dodajesz samodzielnie, musi znaleźć się w `assumptions_made` (audyt)."
+- 
 ### 3.3 Potencjalne problemy i pomysły na rozwiązania
 
 | Problem | Opis | Rozwiązanie |
